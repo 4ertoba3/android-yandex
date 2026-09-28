@@ -1,75 +1,46 @@
 package com.github.c4ertoba3.todos
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.github.c4ertoba3.todos.ui.theme.ToDosTheme
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.github.c4ertoba3.todos.todo.FileStorage
-import com.github.c4ertoba3.todos.todo.TodoItem
-import com.github.c4ertoba3.todos.todo.Importance
-import android.util.Log
+import com.github.c4ertoba3.todos.ui.edit.EditScreen
+import com.github.c4ertoba3.todos.ui.theme.ToDosTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
-
-        val storage = FileStorage(this)
-
-        storage.add(TodoItem(text = "Первое дело"))
-        storage.add(TodoItem(text = "Второе дело", importance = Importance.HIGH))
-
-        storage.save()
-        storage.load()
-
-        Log.d("TODO_TEST", "Дела: ${storage.todos}")
-
-        //LeakHolder.leaked.add(this)
-
-        //var sum = 0L
-        //val start = System.currentTimeMillis()
-        //for (i in 0..500_000_000) {
-        //    sum += i
-        //}
-        //val elapsed = System.currentTimeMillis() - start
-        //Log.d("TODO_TEST", "Тяжёлый цикл: $elapsed ms, sum=$sum")
-
-
         enableEdgeToEdge()
+
+        // Загружаем сохранённое дело (если есть)
+        val storage = FileStorage(this)
+        storage.load()
+        Log.d("TODO_TEST", "Loaded: ${storage.todos}")
+
         setContent {
             ToDosTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    EditScreen(
+                        initialItem = storage.todos.firstOrNull(),
+                        onSave = { item ->
+                            storage.add(item)
+                            storage.save()
+                            Log.d("TODO_TEST", "Saved: $item")
+                        }
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    ToDosTheme {
-        Greeting("Android")
     }
 }

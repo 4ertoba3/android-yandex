@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "com.github.c4ertoba3.todos"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -47,6 +47,7 @@ dependencies {
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.logback.android)
     implementation(libs.slf4j.api)
+    implementation("androidx.compose.material:material-icons-extended")
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
