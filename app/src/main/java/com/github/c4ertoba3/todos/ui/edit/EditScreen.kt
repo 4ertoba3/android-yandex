@@ -26,8 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import com.github.c4ertoba3.todos.todo.Importance
 import com.github.c4ertoba3.todos.todo.TodoItem
 import com.github.c4ertoba3.todos.ui.theme.ToDosTheme
@@ -138,24 +141,23 @@ fun EditScreen(
         }
     }
 
-    if (showColorPicker) {
-        Dialog(
-            onDismissRequest = { showColorPicker = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false)
+    AnimatedVisibility(
+        visible = showColorPicker,
+        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
         ) {
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = MaterialTheme.colorScheme.background
-            ) {
-                ColorPickerScreen(
-                    initialColor = color,
-                    onColorSelected = {
-                        color = it
-                        showColorPicker = false
-                    },
-                    onDismiss = { showColorPicker = false }
-                )
-            }
+            ColorPickerScreen(
+                initialColor = color,
+                onColorSelected = {
+                    color = it
+                    showColorPicker = false
+                },
+                onDismiss = { showColorPicker = false }
+            )
         }
     }
 }
