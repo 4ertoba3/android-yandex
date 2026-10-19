@@ -1,23 +1,62 @@
 package com.github.c4ertoba3.todos.navigation
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import com.github.c4ertoba3.todos.ui.TodoStore
+import com.github.c4ertoba3.todos.di.AppContainer
 import com.github.c4ertoba3.todos.ui.edit.EditScreen
-import com.github.c4ertoba3.todos.ui.list.ListScreen
+import com.github.c4ertoba3.todos.ui.list.*
+import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavHost(
     navController: NavHostController,
-    store: TodoStore,
+    container: AppContainer,
     modifier: Modifier = Modifier
 ) {
+    var listState by remember { mutableStateOf(ListScreenState()) }
+
+    var currentRequestId by remember { mutableIntStateOf(0) }
+
+    val scope = rememberCoroutineScope()
+
+    lateinit var handleAction: (ListAction) -> Unit
+
+    handleAction = { action ->
+        listState = listReducer(listState, action)
+
+        when (action) {
+            is ListAction.LoadStarted -> {
+                scope.launch {
+                    try {
+                        val todos = container.todoService.loadTodos()
+                        handleAction(ListAction.LoadSuccess(action.requestId, todos))
+                    } catch (e: Exception) {
+                        handleAction(ListAction.LoadError(action.requestId, e.message ?: "Ошибка"))
+                    }
+                }
+            }
+            is ListAction.DeleteItem -> {
+                scope.launch {
+                    val success = container.todoService.deleteTodo(action.item.uid)
+                    if (success) {
+                        handleAction(ListAction.ItemDeleted(action.item.uid))
+                    }
+                }
+            }
+            else -> Unit
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        currentRequestId++
+        handleAction(ListAction.LoadStarted(currentRequestId))
+    }
+
     NavHost(
         navController = navController,
         startDestination = Routes.LIST,
@@ -25,38 +64,25 @@ fun AppNavHost(
     ) {
         composable(Routes.LIST) {
             ListScreen(
-                todos = store.todos,
-                onItemClick = { item ->
-                    navController.navigate(Routes.edit(item.uid)) {
-                        launchSingleTop = true
-                    }
-                },
-                onAddClick = {
-                    navController.navigate(Routes.EDIT_BASE) {
-                        launchSingleTop = true
-                    }
-                },
-                onDelete = { item -> store.remove(item.uid) }
+                state = listState,
+                onAction = handleAction,
+                onItemClick = { item -> navController.navigate(Routes.edit(item.uid)) { launchSingleTop = true } },
+                onAddClick = { navController.navigate(Routes.EDIT_BASE) { launchSingleTop = true } }
             )
         }
 
-        composable(
-            route = Routes.EDIT,
-            arguments = listOf(
-                navArgument(Routes.ARG_TODO_ID) {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                }
-            )
-        ) { backStackEntry ->
+        composable(Routes.EDIT, arguments = listOf(navArgument(Routes.ARG_TODO_ID) { type = NavType.StringType; nullable = true; defaultValue = null })) { backStackEntry ->
             val todoId = backStackEntry.arguments?.getString(Routes.ARG_TODO_ID)
-            val initialItem = remember(todoId) { store.findById(todoId) }
+            val initialItem = listState.todos.find { it.uid == todoId }
 
             EditScreen(
                 initialItem = initialItem,
                 onSave = { item ->
-                    store.add(item)
+                    scope.launch {
+                        container.todoService.addOrUpdateTodo(item)
+                        currentRequestId++
+                        handleAction(ListAction.LoadStarted(currentRequestId))
+                    }
                     navController.popBackStack()
                 }
             )
