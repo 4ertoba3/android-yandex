@@ -57,7 +57,6 @@ fun ColorPickerScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Квадрат текущего цвета
         Box(
             modifier = Modifier
                 .size(80.dp)
