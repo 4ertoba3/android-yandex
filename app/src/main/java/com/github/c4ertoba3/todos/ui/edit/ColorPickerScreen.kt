@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Slider
@@ -24,18 +23,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -45,10 +45,10 @@ fun ColorPickerScreen(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val initialComposeColor = Color(initialColor)
     var currentColor by rememberSaveable { mutableIntStateOf(initialColor) }
-    var brightness by rememberSaveable { mutableFloatStateOf(initialComposeColor.convert(ColorSpace.Of.Hsv).value[2]) }
-    var hue by rememberSaveable { mutableFloatStateOf(initialComposeColor.convert(ColorSpace.Of.Hsv).value[0]) }
+    
+    var brightness by rememberSaveable { mutableFloatStateOf(1f) }
+    var hue by rememberSaveable { mutableFloatStateOf(0f) }
     
     var pointerPosition by remember { mutableStateOf(Offset.Zero) }
 
@@ -57,6 +57,7 @@ fun ColorPickerScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        // Квадрат текущего цвета
         Box(
             modifier = Modifier
                 .size(80.dp)
@@ -107,6 +108,7 @@ fun ColorPickerScreen(
                 val colors = List(7) { i ->
                     Color.hsv(i * 60f, 1f, brightness)
                 }
+                
                 drawRect(
                     brush = Brush.horizontalGradient(colors)
                 )
@@ -121,7 +123,7 @@ fun ColorPickerScreen(
                         color = Color.White,
                         radius = 12.dp.toPx(),
                         center = pointerPosition,
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx())
+                        style = Stroke(width = 2.dp.toPx())
                     )
                 }
             }
