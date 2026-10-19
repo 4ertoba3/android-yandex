@@ -25,10 +25,10 @@ class MainActivity : ComponentActivity() {
 
         val storage = FileStorage(this)
 
-        storage.add(TodoItem(text = "Первое дело"))
-        storage.add(TodoItem(text = "Второе дело", importance = Importance.HIGH))
-
-        storage.save()
+        // storage.add(TodoItem(text = "Первое дело"))
+        // storage.add(TodoItem(text = "Второе дело", importance = Importance.HIGH))
+        // storage.save()
+        
         storage.load()
 
         Log.d("TODO_TEST", "Дела: ${storage.todos}")
