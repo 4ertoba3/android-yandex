@@ -13,10 +13,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -24,37 +26,48 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.github.c4ertoba3.todos.todo.Importance
 import com.github.c4ertoba3.todos.todo.TodoItem
-import com.github.c4ertoba3.todos.ui.theme.ToDosTheme
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
 @Composable
 fun EditScreen(
-    modifier: Modifier = Modifier,
-    initialItem: TodoItem? = null,
-    onSave: (TodoItem) -> Unit = {}
+    viewModel: EditViewModel,
+    onSaveComplete: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    var text by rememberSaveable { mutableStateOf(initialItem?.text ?: "") }
-    var isDone by rememberSaveable { mutableStateOf(initialItem?.isDone ?: false) }
-    var color by rememberSaveable {
-        mutableStateOf(initialItem?.color ?: android.graphics.Color.WHITE)
-    }
-    var importance by rememberSaveable {
-        mutableStateOf(initialItem?.importance ?: Importance.BASIC)
-    }
-    var deadline by rememberSaveable { mutableStateOf(initialItem?.deadline) }
+    val initialItem by viewModel.initialItem.collectAsStateWithLifecycle()
+    val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
+
+    var text by rememberSaveable { mutableStateOf("") }
+    var isDone by rememberSaveable { mutableStateOf(false) }
+    var color by rememberSaveable { mutableStateOf(android.graphics.Color.WHITE) }
+    var importance by rememberSaveable { mutableStateOf(Importance.BASIC) }
+    var deadline by rememberSaveable { mutableStateOf<LocalDateTime?>(null) }
+
     var showColorPicker by rememberSaveable { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
+
+    LaunchedEffect(initialItem) {
+        initialItem?.let { item ->
+            text = item.text
+            isDone = item.isDone
+            color = item.color
+            importance = item.importance
+            deadline = item.deadline
+        }
+    }
+
+    if (isLoading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
+    }
 
     if (showDatePicker) {
         DatePickerModal(
@@ -131,7 +144,8 @@ fun EditScreen(
                             deadline = deadline,
                             isDone = isDone
                         )
-                        onSave(item)
+                        viewModel.save(item)
+                        onSaveComplete()
                     },
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -141,44 +155,14 @@ fun EditScreen(
         }
     }
 
-    AnimatedVisibility(
-        visible = showColorPicker,
-        enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-        exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background
-        ) {
-            ColorPickerScreen(
-                initialColor = color,
-                onColorSelected = {
-                    color = it
-                    showColorPicker = false
-                },
-                onDismiss = { showColorPicker = false }
-            )
-        }
+    if (showColorPicker) {
+        ColorPickerScreen(
+            initialColor = color,
+            onColorSelected = {
+                color = it
+                showColorPicker = false
+            },
+            onDismiss = { showColorPicker = false }
+        )
     }
-}
-
-@Preview(showBackground = true, name = "Телефон (портрет)",
-    device = "spec:width=411dp,height=891dp")
-@Composable
-private fun EditScreenPreview() {
-    ToDosTheme { EditScreen() }
-}
-
-@Preview(showBackground = true, name = "Телефон (ландшафт)",
-    device = "spec:width=891dp,height=411dp")
-@Composable
-private fun EditScreenLandscapePreview() {
-    ToDosTheme { EditScreen() }
-}
-
-@Preview(showBackground = true, name = "Планшет",
-    device = "spec:width=800dp,height=1280dp")
-@Composable
-private fun EditScreenTabletPreview() {
-    ToDosTheme { EditScreen() }
 }
