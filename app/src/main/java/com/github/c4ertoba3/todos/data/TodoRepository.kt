@@ -7,23 +7,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 class TodoRepository(
-    private val cache: TodoCache,
+    private val cache: RoomTodoCache,
     private val remote: TodoRemoteDataSource
 ) {
-    private val _todos = MutableStateFlow<List<TodoItem>>(emptyList())
-    val observeTodos: Flow<List<TodoItem>> = _todos.asStateFlow()
+    val observeTodos: Flow<List<TodoItem>> = cache.observeAll()
 
     suspend fun refreshFromBackend() {
-        try {
-            val remoteTodos = remote.fetchTodos()
-
-            remoteTodos.forEach { cache.save(it) }
-
-            _todos.value = cache.getAll()
-        } catch (e: Exception) {
-            _todos.value = cache.getAll()
-            throw e
-        }
+        val remoteTodos = remote.fetchTodos()
+        cache.clear()
+        cache.saveAll(remoteTodos)
     }
 
     suspend fun getTodo(uid: String): TodoItem? = cache.getById(uid)
@@ -31,7 +23,6 @@ class TodoRepository(
     suspend fun save(item: TodoItem) {
         val isNew = cache.getById(item.uid) == null
         cache.save(item)
-        _todos.value = cache.getAll()
 
         if (isNew) remote.pushTodo(item)
         else remote.updateTodo(item)
@@ -39,7 +30,6 @@ class TodoRepository(
 
     suspend fun delete(uid: String) {
         cache.delete(uid)
-        _todos.value = cache.getAll()
         remote.deleteTodo(uid)
     }
 }
